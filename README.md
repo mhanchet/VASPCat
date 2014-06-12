@@ -1,4 +1,4 @@
 VaspCat
 =======
 
-Package for generating VASP input files from crystal geometry input.
+Package for generating VASP files from crystal geometry input.
