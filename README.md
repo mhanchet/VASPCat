@@ -1,4 +1,6 @@
-							      VaspCat
+VaspCat
+-------
+-------
 
 What is it?
 -----------
