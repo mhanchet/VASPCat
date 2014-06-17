@@ -9,7 +9,7 @@ def main(directory, atom_list):
     for atom in atom_list:
 
         infile = pkg.resource_filename(
-		    'vaspcat', 'extend/potext/POTCAR_' + atom
+		    'vaspcat', 'extend/potext/' + atom + '/POTCAR'
         )
         pkgfile.append(infile)
     
