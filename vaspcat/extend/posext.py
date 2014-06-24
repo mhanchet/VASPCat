@@ -3,12 +3,7 @@ import shlex
 from math import sin,cos,radians
 
 class Cif(object):
-    '''Read cif files and convert them to other formats
-
-    Attributes:
-        supported: Gives the file types that Cif instances can
-                   convert .cif files to
-    '''
+    '''Read cif files and convert them to other formats.'''
     
     @staticmethod
     def read(file) -> 'Dictionary for cif parse()':
@@ -97,7 +92,7 @@ class Cif(object):
     
     @staticmethod
     def parse(data) -> '3-tuple for Convert.output()':
-        '''Takes data from cif read function and returns relevant data
+        '''Takes data from cif read method and returns relevant data.
 
         Args:
             data: Dictionary from cif_read mapping cif variables to values.
@@ -192,127 +187,132 @@ class Cif(object):
         return lat_vec, atom_info, frac_coor
 
 
-def pdb_read(file) -> 'Dictionary for pdb_Parse()':
-    '''Gathers variable info from input pdb file.
-
-    Args:
-        file: Full path of the .pdb file to be read.
-
-    Returns:
-        A dictionary object containing pdb file variables as keys and their
-        values, which are stored as lists of either strings or floats.
-    '''
-
-    keyword = ('CRYST1', 'SCALE', 'ATOM', 'HETATM')
-
-    with open(file, 'r+') as f:
-        lines_read = [line for line in f if line.startswith(keyword)]
-
-    output = {'x':[], 'y':[], 'z':[], 'atom':[]}
-
-    # Set value of keys in output based on field position on a given line.
-    # In a pdb file, every line starts with a record name in all caps.
-    # Next to each record are fields representing different variable values.
-    # The fields are always located in the same position next to a record.
-    # The if statements take advantage of this consistency, reading fields
-    # from the same position in a line if a record name is recognized.
+class Pdb(object):
+    '''Read pdb files and return their important atomic information.'''
     
-    for line in lines_read:
+    @staticmethod
+    def read(file) -> 'Dictionary for pdb parse()':
+        '''Gathers variable info from input pdb file.
 
-        if line.startswith('CRYST1'):
-            output['a'] = float(line[6:15].strip())
-            output['b'] = float(line[15:24].strip())
-            output['c'] = float(line[24:33].strip())
+        Args:
+            file: Full path of the .pdb file to be read.
 
-            output['alpha'] = radians(float(line[33:40])) 
-            output['beta'] = radians(float(line[40:47]))
-            output['gamma'] = radians(float(line[47:54]))
+        Returns:
+            A dictionary object containing pdb file variables as keys and their
+            values, which are stored as lists of either strings or floats.
+        '''
 
-        elif line.startswith('SCALE'):
-            output['s' + line[5]] = [float(line[10:20].strip()),
-                                     float(line[20:30].strip()),
-                                     float(line[30:40].strip())]
+        keyword = ('CRYST1', 'SCALE', 'ATOM', 'HETATM')
 
-            output['u' + line[5]] = float(line[45:55].strip())
+        with open(file, 'r+') as f:
+            lines_read = [line for line in f if line.startswith(keyword)]
+
+        output = {'x':[], 'y':[], 'z':[], 'atom':[]}
+
+        # Set value of keys in output based on field positions in a given
+        # line.  Next to each record are fields representing different 
+        # variable values.  The fields are always located in the same 
+        # position next to a record.  The if statements take advantage
+        # of this consistency, reading fields from the same position 
+        # if a record name is recognized.
+
+        for line in lines_read:
+
+            if line.startswith('CRYST1'):
+                output['a'] = float(line[6:15].strip())
+                output['b'] = float(line[15:24].strip())
+                output['c'] = float(line[24:33].strip())
+
+                output['alpha'] = radians(float(line[33:40])) 
+                output['beta'] = radians(float(line[40:47]))
+                output['gamma'] = radians(float(line[47:54]))
+
+            elif line.startswith('SCALE'):
+                output['s' + line[5]] = [float(line[10:20].strip()),
+                                         float(line[20:30].strip()),
+                                         float(line[30:40].strip())]
+
+                output['u' + line[5]] = float(line[45:55].strip())
             
-        elif line.startswith(('ATOM', 'HETATOM')):
-            if line[12].upper() == 'H':
-                output['atom'].append(line[12])
-            elif line[12] == ' ':
-                output['atom'].append(line[13])
-            else:
-                output['atom'].append(line[12] + line[13].lower())
+            elif line.startswith(('ATOM', 'HETATOM')):
+                if line[12].upper() == 'H':
+                    output['atom'].append(line[12])
+                elif line[12] == ' ':
+                    output['atom'].append(line[13])
+                else:
+                    output['atom'].append(line[12] + line[13].lower())
             
-            output['x'].append(float(line[30:38].strip()))
-            output['y'].append(float(line[38:46].strip()))
-            output['z'].append(float(line[46:54].strip()))
+                output['x'].append(float(line[30:38].strip()))
+                output['y'].append(float(line[38:46].strip()))
+                output['z'].append(float(line[46:54].strip()))
 
-    return output
-            
-                                        
-def pdb_parse(data) -> '3-Tuple for Convert.Output()':
-    '''Takes data from cif_Read function and returns relevant data
-
-    Args:
-        data: Dictionary from cif_read mapping cif variables to values.
-
-    Returns:
-        A 3-tuple containing the required information for Convert.output().
-
-        lat_vec: A list of three strings containing the lattice vectors
-        atom_info: A list with the following form -
-            [[atom 1 name, # of atom 1], [atom 2 name, # of atom 2], ...]
-        frac_coor: A list of strings, with each string containing the
-                   x, y, and z fractional coordinates of the atom
-                   separated by spaces.
-    '''
-    f = data
+        return output
     
-    #Convert the supplied orthogonal coordinates to fractional coordinates.
+    @staticmethod
+    def parse(data) -> '3-Tuple for Convert.Output()':
+        '''Takes data from cif read method and returns relevant data.
 
-    xyz = list(zip(f['x'], f['y'], f['z']))
-    ortho = [vec for vec in xyz]
+        Args:
+            data: Dictionary from cif_read mapping cif variables to values.
 
-    key_tup = (('x','1'),('y','2'), ('z','3'))
+        Returns:
+            A 3-tuple containing the required information for Convert.output().
 
-    for key,i in key_tup:
-        s = 's' + i
-        u = 'u' + i
-        f[key] = [f[s][0]*vec[0] + f[s][1]*vec[1] + f[s][2]*vec[2] + f[u]
-                     for vec in ortho]
+            lat_vec: A list of three strings containing the lattice vectors
+            atom_info: A list with the following form -
+                [[atom 1 name, # of atom 1], [atom 2 name, # of atom 2], ...]
+            frac_coor: A list of strings, with each string containing the
+                       x, y, and z fractional coordinates of the atom
+                       separated by spaces.
+         '''
+        f = data
     
-    # Calculate the lattice vectors, outputting as string list.
-    # v is the unit cell volume.
+        #Convert the supplied orthogonal coordinates to fractional coordinates.
 
-    v = (f['a']*f['b']*f['c']*
-        (1 - cos(f['alpha'])**2 - cos(f['beta'])**2 - cos(f['gamma'])**2 +
-         2*cos(f['alpha'])*cos(f['beta'])*cos(f['gamma']))**0.5)
+        xyz = list(zip(f['x'], f['y'], f['z']))
+        ortho = [vec for vec in xyz]
 
-    lat_vec = [[f['a'], f['b']*cos(f['beta']), f['c']*cos(f['beta'])],
-               [0, f['b']*sin(f['gamma']),
-                f['c']*(cos(f['alpha'])- cos(f['beta'])*cos(f['gamma']))/
-                sin(f['gamma'])],
-               [0, 0, v/(f['a']*f['b']*sin(f['gamma']))]]
+        key_tup = (('x','1'),('y','2'), ('z','3'))
 
-    lat_vec = [' '.join(['{: 5.10f}'.format(i) for i in v]) for v in lat_vec]
-
-    #Combine x, y, and z fractional coordinates in a string.
+        for key,i in key_tup:
+            s = 's' + i
+            u = 'u' + i
+            f[key] = [f[s][0]*vec[0] + f[s][1]*vec[1] + f[s][2]*vec[2] + f[u]
+                      for vec in ortho]
     
-    frac_coor = [' '.join(['{: 5.10f}'.format(i) for i in tup]) 
-                 for tup in zip(f['x'], f['y'], f['z'])]
+        # Calculate the lattice vectors, outputting as string list.
+        # v is the unit cell volume.
 
-    # Create the remaining two output lists from the set uniq_atom.
-    # The order of the fractional coordinates now matches the atom
-    # order in atom_info.
+        v = (f['a']*f['b']*f['c']*
+            (1 - cos(f['alpha'])**2 - cos(f['beta'])**2 - cos(f['gamma'])**2 +
+            2*cos(f['alpha'])*cos(f['beta'])*cos(f['gamma']))**0.5)
 
-    atom = f['atom']
-    uniq_atom = set(atom)
+        lat_vec = [[f['a'], f['b']*cos(f['beta']), f['c']*cos(f['beta'])],
+                   [0, f['b']*sin(f['gamma']),
+                   f['c']*(cos(f['alpha'])- cos(f['beta'])*cos(f['gamma']))/
+                   sin(f['gamma'])],
+                  [0, 0, v/(f['a']*f['b']*sin(f['gamma']))]]
 
-    atom_info = [(a, atom.count(a)) for a in uniq_atom]
-    frac_coor = [f for ua in uniq_atom for a, f in zip(atom, frac_coor)
-                 if ua == a]
+        lat_vec = [' '.join(['{: 5.10f}'.format(i) for i in v])
+                   for v in lat_vec]
 
-    return lat_vec, atom_info, frac_coor
+        #Combine x, y, and z fractional coordinates in a string.
+    
+        frac_coor = [' '.join(['{: 5.10f}'.format(i) for i in tup]) 
+                     for tup in zip(f['x'], f['y'], f['z'])]
+
+        # Create the remaining two output lists from the set uniq_atom.
+        # The order of the fractional coordinates now matches the atom
+        # order in atom_info.
+
+        atom = f['atom']
+        uniq_atom = set(atom)
+
+        atom_info = [(a, atom.count(a)) for a in uniq_atom]
+        frac_coor = [f for ua in uniq_atom for a, f in zip(atom, frac_coor)
+                     if ua == a]
+
+        return lat_vec, atom_info, frac_coor
                 
 
     
