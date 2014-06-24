@@ -1,3 +1,4 @@
+import inspect
 import os
 import sys
 from vaspcat.extend import posext
@@ -5,9 +6,14 @@ from vaspcat.extend import posext
 
 def main(directory) -> 'Atom list with same order as POSCAR':
     '''Calls methods which generate a POSCAR file for VASP usage.'''
-
+    
+    # Get list of file types that can be parsed.  This is accomplished
+    # by grabbing class names in posext.py named after file extensions
+    supported = [name.lower() for name, obj in inspect.getmembers(posext)
+                 if inspect.isclass(obj)]
+    
     print('Scanning for convertable files in {0}.'.format(directory),'\n')
-    poscar = Convert(*find(directory, Convert.supported))
+    poscar = Convert(*find(directory, supported))
 
     print('Saving POSCAR file...')
     atom_list = poscar.output(directory)
@@ -17,16 +23,23 @@ def main(directory) -> 'Atom list with same order as POSCAR':
 
 
 def find(directory, supported) -> 'File path/extension tuple': 
-    '''Finds files with supported extensions from directory.'''
+    '''Finds files with supported extensions from directory.
+    
+    Args: 
+        directory: Folder which vaspcat is run from, containing the 
+                   files to be converted by the program.
+        supported: List of file types which can be converted by
+                   the program, obtained from class names in posext.py 
+    '''
 
-    #The use of slices is meant to remove the dot from the file extension.
+    # The use of slices is meant to remove the dot from the file extension.
 
     path = [os.path.join(directory, file)
             for ext in supported
             for file in os.listdir(directory)
             if file[-len(ext):] in supported]
 
-    #Try to get the extension from the supported files, if files were found
+    # Try to get the extension from the supported files, if files were found
 
     try: 
         file_ext = os.path.splitext(path[0])[1]
@@ -41,19 +54,9 @@ def find(directory, supported) -> 'File path/extension tuple':
     return path[0], file_ext[-len(file_ext)+1:]
 
     
-        
-        
 class Convert(object):
-    '''Converts input files to POSCAR files
+    '''Converts input files to POSCAR file'''
 
-    Attribues:
-        supported: Gives the file types the class is able to convert.
-                   Change this line and add read and parse methods to
-                   poscar_extend to enable new conversion functionality.
-    '''     
-
-    supported = ['pdb','cif']
-    
     def __init__(self, path, ext):
         '''Initialize the methods and functions output requires.
 
@@ -64,11 +67,14 @@ class Convert(object):
                  the Convert class.  These methods are located in the
                  external file posext.py.
         '''
-
-        self.path = path
-        self.read = getattr(posext, ext + '_read')
-        self.parse = getattr(posext, ext + '_parse')
         
+        #Account for the fact that classes are capitalized in posext.py        
+        ext = ext.capitalize()
+        
+        self.path = path
+        self.read = getattr(posext,ext).read
+        self.parse = getattr(posext,ext).parse
+    
     def output(self, directory) -> 'Atom list with same order as POSCAR':
         '''Saves POSCAR file in directory
 
