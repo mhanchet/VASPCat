@@ -48,7 +48,7 @@ def find(directory, supported) -> 'File path/extension tuple':
 
         print('No convertable files were found in {0}.'.format(directory))
         print('Choose another directory and rerun vaspcat.','\n')
-        print('Supported file formats: ' + ', '.join(Convert.supported))
+        print('Supported file formats: ' + ', '.join(supported))
         sys.exit()      
 
     return path[0], file_ext[-len(file_ext)+1:]

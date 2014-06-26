@@ -154,7 +154,7 @@ class Cif(object):
         atom = []
 
         for key, value in f.items():
-       
+            
             if (key == 'atom_name') or (key == 'atom_label' and atom == []):
                 atom = [f[0] + re.sub('[^a-z]','',f[1:2].lower()) 
                         for f in value]
@@ -167,7 +167,16 @@ class Cif(object):
 
             elif key in ['x', 'y', 'z']:
                 f[key] = [float(re.sub('[()]','',item)) for item in value]
-    
+                
+                # Get rid of negative fractional coordinates.
+                tmp = []
+                for coor in f[key]:
+                    if float(coor) < 0:
+                        coor += 1
+                    tmp.append(coor)
+                f[key] = tmp
+
+
         # Calculate the lattice vectors, outputting as string list.
         # v is the unit cell volume.
 
@@ -199,23 +208,32 @@ class Cif(object):
             if new_atoms:
                 
                 # 3) Make a tuple list of the space group equations.
-                eq_list = [(i+1,eq) for i,eq in enumerate(f['spc_eq'])]
+                eq_list = [(i+1,re.sub("[']",'',eq))
+                           for i,eq in enumerate(f['spc_eq'])]
                 
                 for num in geom_id:
                     
                     num = str(num)
+                    eq_id = [re.sub('\_(.*)','',id) for id in
+                             f['spc_eq_id_'+num]]
+                    
+                    # klm contains additional values to add to the new
+                    # fractional coordinates once they are generated.
+                    klm = [re.sub('(\d)+[_]','',id) for id in 
+                           f['spc_eq_id_'+num] 
+                           if re.sub('(\d)+[_]','',id).isdigit()]
                     
                     # 4) Add new atom names to existing atom list.
                     atom_name = [f[0] + 
                                  re.sub('[^a-z]','',f[1:2].lower()) 
                                  for f,id in 
-                                 zip(f['spc_atom_'+num],f['spc_eq_id_'+num])
+                                 zip(f['spc_atom_'+num],eq_id)
                                  if id.isdigit()]
                     atom += atom_name
                     
                     # 5) Get coordinate location cooresponding to atom_label.
                     xyz_id = [i for label,id  
-                                in zip(f['spc_atom_'+num],f['spc_eq_id_'+num])
+                                in zip(f['spc_atom_'+num],eq_id)
                                 for i,atom in enumerate(f['atom_label'])
                                 if id.isdigit() if atom == label]
                     
@@ -224,7 +242,7 @@ class Cif(object):
                            for i in xyz_id]
                     
                     # 7) Get equation cooresponding to spc_eq_id.
-                    eq = [eq for id in f['spc_eq_id_'+num] 
+                    eq = [eq for id in eq_id
                           if id.isdigit()
                           for i,eq in eq_list
                           if int(i) == int(id)]
@@ -249,18 +267,25 @@ class Cif(object):
                             eq[i] = expr.replace(var, str(newf[var][i]))
                     
                     # 10) Evaluate expr to get new fractional coordinate.
-                    for expr in eq:
+                    for expr,extra in zip(eq,klm):
                         newf['x'],newf['y'],newf['z'] = expr.split(',')
                                                 
-                        for l in ['x','y','z']:
+                        for i,l in enumerate(['x','y','z']):
                             
-                            #Cif.calc requires a binary expression 
+                            newf[l] = newf[l].strip()
+
+                            # Cif.calc requires a binary expression.
+                            
                             if newf[l][0] == '-':
                                 newf[l] = '0' + newf[l]  
                             
                             tmp = Cif.calc(ast.parse(newf[l]).body[0].value)
                             
-                            #11) Make fractional coordinate positive.
+                            # 11) Add klm to xyz coordinate.
+                            if int(extra) > 333:
+                                tmp += int(extra[i])-5
+                            
+                            # 12) Make fractional coordinate positive.
                             if tmp > 1:
                                 tmp -= 1
                                 f[l].append(tmp)
@@ -287,6 +312,30 @@ class Cif(object):
         atom_info = [(a, atom.count(a)) for a in uniq_atom]
         frac_coor = [f for ua in uniq_atom for a, f in zip(atom, frac_coor)
                      if ua == a]
+        
+        # Remove duplicate fractional coordinates that may have been
+        # added by the site group code.
+
+        i = 0
+        new_frac, new_count  = [], []
+
+        for value in atom_info:
+            name = value[0]
+            count = int(value[1])
+            
+            iold = i
+            i += count
+            
+            uniq_frac = set(frac_coor[iold:i])
+            
+            new_frac.extend(uniq_frac)
+            new_count.append(len(uniq_frac))
+        
+        # Replace atom_info and frac_coor if duplicates do exist.
+        if len(new_frac) != len(frac_coor):
+            atom_info = [(name,count) for name,count
+                         in zip(uniq_atom,new_count)]
+            frac_coor = new_frac
 
         return lat_vec, atom_info, frac_coor
 
