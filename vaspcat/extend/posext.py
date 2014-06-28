@@ -184,16 +184,23 @@ class Cif(object):
         
         # Calculate the lattice vectors, outputting as string list.
         # v is the unit cell volume.
-
         v = (f['a']*f['b']*f['c']*
              (1 - cos(f['alpha'])**2 - cos(f['beta'])**2 - cos(f['gamma'])**2 +
               2*cos(f['alpha'])*cos(f['beta'])*cos(f['gamma']))**0.5)
 
-        lat_vec = [[f['a'], f['b']*cos(f['beta']), f['c']*cos(f['beta'])],
+        lat_vec = [# a vector
+                   [f['a'], f['b']*cos(f['gamma']), 0],
+                   
+                   # b vector
                    [0, f['b']*sin(f['gamma']),
                     f['c']*(cos(f['alpha'])- cos(f['beta'])*cos(f['gamma']))/
                     sin(f['gamma'])],
-                   [0, 0, v/(f['a']*f['b']*sin(f['gamma']))]]
+                   
+                   # c vector
+                   [f['c']*cos(f['beta']), 0, 
+                    v/(f['a']*f['b']*sin(f['gamma']))]
+                  ]
+
 
         lat_vec = [' '.join(['{: 5.10f}'.format(i) for i in v])
                    for v in lat_vec]
@@ -444,12 +451,19 @@ class Pdb(object):
         v = (f['a']*f['b']*f['c']*
             (1 - cos(f['alpha'])**2 - cos(f['beta'])**2 - cos(f['gamma'])**2 +
             2*cos(f['alpha'])*cos(f['beta'])*cos(f['gamma']))**0.5)
-
-        lat_vec = [[f['a'], f['b']*cos(f['beta']), f['c']*cos(f['beta'])],
+        
+        lat_vec = [# a vector
+                   [f['a'], f['b']*cos(f['gamma']), 0],
+                   
+                   # b vector
                    [0, f['b']*sin(f['gamma']),
-                   f['c']*(cos(f['alpha'])- cos(f['beta'])*cos(f['gamma']))/
-                   sin(f['gamma'])],
-                  [0, 0, v/(f['a']*f['b']*sin(f['gamma']))]]
+                    f['c']*(cos(f['alpha'])- cos(f['beta'])*cos(f['gamma']))/
+                    sin(f['gamma'])],
+                   
+                   # c vector
+                   [f['c']*cos(f['beta']), 0, 
+                    v/(f['a']*f['b']*sin(f['gamma']))]
+                  ]
 
         lat_vec = [' '.join(['{: 5.10f}'.format(i) for i in v])
                    for v in lat_vec]
