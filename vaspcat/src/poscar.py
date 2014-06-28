@@ -93,7 +93,7 @@ class Convert(object):
  
         with open(os.path.join(directory, 'POSCAR'), mode='w') as f:
             #Line 1: System Name
-            f.write(' '.join([atom[0] for atom in atom_info]) + '\n')
+            f.write('POSCAR\n') 
 
             #Line 2: Scaling Constant
             f.write('1.00'.rjust(7) + '\n')
@@ -104,6 +104,8 @@ class Convert(object):
 
             #Line 4: Atoms per Species
             atom_count = ' '.join([str(count[1]) for count in atom_info])
+            f.write(''.rjust(3))
+            f.write(' '.join([atom[0] for atom in atom_info]) + '\n')
             f.write(''.rjust(3) + atom_count + '\n')
 
             #Lines 5/6: Allow cell relaxation and specify direct coordinates
@@ -111,7 +113,7 @@ class Convert(object):
 
             #Lines 7-End: Cell Coordinates
             for line in frac_pos:
-                f.write(' ' + line + '\n')
+                f.write(' ' + line + ' F F F\n')
 
         return [atom[0] for atom in atom_info]  
 
