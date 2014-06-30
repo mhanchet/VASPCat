@@ -187,20 +187,19 @@ class Cif(object):
         v = (f['a']*f['b']*f['c']*
              (1 - cos(f['alpha'])**2 - cos(f['beta'])**2 - cos(f['gamma'])**2 +
               2*cos(f['alpha'])*cos(f['beta'])*cos(f['gamma']))**0.5)
-
+        
         lat_vec = [# a vector
-                   [f['a'], f['b']*cos(f['gamma']), 0],
+                   [f['a'], 0, 0],
                    
                    # b vector
-                   [0, f['b']*sin(f['gamma']),
-                    f['c']*(cos(f['alpha'])- cos(f['beta'])*cos(f['gamma']))/
-                    sin(f['gamma'])],
+                   [f['b']*cos(f['gamma']), f['b']*sin(f['gamma']),0],
                    
                    # c vector
-                   [f['c']*cos(f['beta']), 0, 
+                   [f['c']*cos(f['beta']),
+                    f['c']*(cos(f['alpha'])- cos(f['beta'])*cos(f['gamma']))/
+                    sin(f['gamma']), 
                     v/(f['a']*f['b']*sin(f['gamma']))]
                   ]
-
 
         lat_vec = [' '.join(['{: 5.10f}'.format(i) for i in v])
                    for v in lat_vec]
@@ -447,27 +446,27 @@ class Pdb(object):
     
         # Calculate the lattice vectors, outputting as string list.
         # v is the unit cell volume.
-
+        
         v = (f['a']*f['b']*f['c']*
             (1 - cos(f['alpha'])**2 - cos(f['beta'])**2 - cos(f['gamma'])**2 +
             2*cos(f['alpha'])*cos(f['beta'])*cos(f['gamma']))**0.5)
         
         lat_vec = [# a vector
-                   [f['a'], f['b']*cos(f['gamma']), 0],
+                   [f['a'], 0, 0],
                    
                    # b vector
-                   [0, f['b']*sin(f['gamma']),
-                    f['c']*(cos(f['alpha'])- cos(f['beta'])*cos(f['gamma']))/
-                    sin(f['gamma'])],
+                   [f['b']*cos(f['gamma']), f['b']*sin(f['gamma']),0],
                    
                    # c vector
-                   [f['c']*cos(f['beta']), 0, 
+                   [f['c']*cos(f['beta']),
+                    f['c']*(cos(f['alpha'])- cos(f['beta'])*cos(f['gamma']))/
+                    sin(f['gamma']), 
                     v/(f['a']*f['b']*sin(f['gamma']))]
                   ]
 
         lat_vec = [' '.join(['{: 5.10f}'.format(i) for i in v])
                    for v in lat_vec]
-
+        
         #Combine x, y, and z fractional coordinates in a string.
     
         frac_coor = [' '.join(['{: 5.10f}'.format(i) for i in tup]) 
