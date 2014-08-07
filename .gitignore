@@ -44,5 +44,5 @@ coverage.xml
 docs/_build/
 
 # VaspCat project files
-vaspcat/extend/potext
+vaspcat/extend/potcar
 vaspcat/test
