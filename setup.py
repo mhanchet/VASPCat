@@ -1,13 +1,13 @@
 from setuptools import setup, find_packages
-
+from vaspcat import __version__
 
 setup(
     name = 'VaspCat',
-    version = '0.1a2',
+    version = __version__,
     url = 'https://github.com/mcarl15/VaspCat',
     license = 'GNU v3',
     author = 'Michael Carlson',
-    author_email = 'mcarl15@ksu.edu'
+    author_email = 'mcarl15@ksu.edu',
     description = 'User-friendly VASP DFT input file generator',
 
     #Default root is same directory as setup.py

@@ -20,6 +20,8 @@ Module Description:
 
 import os
 
+# Current version number, used in updating user documentation
+__version__ = '0.1a2'
 
 # Set up lambda method for clearing the terminal.
 cls = lambda: os.system('clear') or None 
