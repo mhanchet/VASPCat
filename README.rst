@@ -1,13 +1,12 @@
 VaspCat
--------
--------
+=======
 
 What is it?
 -----------
 
 VaspCat is a Python package for generating VASP files from crystal geometry 
 input.  The program is currently capable of generating POSCAR and POTCAR 
-files, but will eventually be able to generate INCAR, KPOINTS, and pbs.in
+files, but will eventually be able to generate INCAR and KPOINTS
 files as well.  By modifying the 'extend' directory, extra functionality
 can easily be added to the package.
 
