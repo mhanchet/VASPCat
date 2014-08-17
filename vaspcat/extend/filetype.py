@@ -1,6 +1,6 @@
 # Python standard library modules:
-import decimal as d
-import math
+from collections import Counter
+from math import cos,radians,sin
 import re
 import shlex
 
@@ -143,17 +143,10 @@ class Cif(object):
         # Make the data dictionary only contain a subset of the total data.
         f = {k[1]:self.data[k[0]] for k in keys
              if self.data.get(k[0])}
-        
-        # Define keywords for math methods used in data parsing.
-        decimal = lambda num: d.Decimal(num)
-        radians = lambda num : decimal(math.radians(decimal(num)))
-        cos = lambda num : decimal(math.cos(num))
-        sin = lambda num : decimal(math.sin(num))
-        
+                
         # Define a tolerance value for finding duplicate coordinates.
-        tol = decimal(0.00025)
+        tol = 0.000025
 
-        # Convert all numbers to decimals, with re.sub removing bracketed digits.
         # Since the largest possible element name is two letters, re.sub is 
         # used to remove extraneous numbers and capital letters from the second
         # character of the 'atom' variable.
@@ -165,13 +158,13 @@ class Cif(object):
                                   for f in f[key]]
 
             elif key in ['alpha', 'beta', 'gamma']:
-                f[key] = radians(re.sub(' ?\(\w+\)','',f[key]))
+                f[key] = radians(float(re.sub(' ?\(\w+\)','',f[key])))
 
             elif key in ['a', 'b', 'c']:
-                f[key] = decimal(re.sub(' ?\(\w+\)','',f[key])) 
+                f[key] = float(re.sub(' ?\(\w+\)','',f[key])) 
 
             elif key in ['x', 'y', 'z']:
-                f[key] = [decimal(re.sub(' ?\(\w+\)','',item)) 
+                f[key] = [float(re.sub(' ?\(\w+\)','',item)) 
                           for item in f[key]]
                 
                 # Bring fractional coordinates between 0 and 1.  If the 
@@ -184,10 +177,10 @@ class Cif(object):
                         elif f[key][i] > 1:
                             f[key][i] -= 1
 
-                    if abs(f[key][i]-0) < tol/10:
-                        f[key][i] = decimal(0)
-                    elif abs(f[key][i]-1) < tol/10:
-                        f[key][i] = decimal(1)
+                    if abs(f[key][i]-0) < tol:
+                        f[key][i] = 0
+                    elif abs(f[key][i]-1) < tol:
+                        f[key][i] = 1
                 
             elif key in ['h-m']:
                 f[key] = re.sub(r'\s+','',f[key])  # Remove spaces in H-M name.
@@ -200,7 +193,7 @@ class Cif(object):
         # v is the unit cell volume.
         v = (f['a']*f['b']*f['c']*
              (1 - cos(f['alpha'])**2 - cos(f['beta'])**2 - cos(f['gamma'])**2 +
-              2*cos(f['alpha'])*cos(f['beta'])*cos(f['gamma']))**decimal(0.5))
+              2*cos(f['alpha'])*cos(f['beta'])*cos(f['gamma']))**0.5)
         
         self.data = {'lat_vec': [
                    # a vector
@@ -279,102 +272,47 @@ class Cif(object):
                             elif new_coor < 0:
                                 new_coor += 1
                         
-                        if abs(new_coor-0) < tol/10:
-                            new_coor = decimal(0)
-                        elif abs(new_coor-1) < tol/10:
-                            new_coor = decimal(1)
+                        if abs(new_coor-0) < tol:
+                            new_coor = 0
+                        elif abs(new_coor-1) < tol:
+                            new_coor = 1
 
                         f[var].append(new_coor)
 
-        # Bring atoms with coordinates of 0 or 1 to the opposite side 
-        # of the unit cell using 3 different criteria.
-        for i in range(len(f['atom'])): 
-            new_coor = {}
+        # Convert all instances of 1 in a coordinate to 0.
+        for i in range(len(f['atom'])):
+            for var in ('x','y','z'):
 
-            for var1 in ('x','y','z'):
-                
-                if f[var1][i] == 0  or f[var1][i] == 1:
-                    for case in range(1,4): 
-                        for var2 in ('x','y','z'):
-                            
-                            # Case 1: Flip var2 between 0 and 1.
-                            if case == 1:
-                                if var2 == var1:
-                                    
-                                    if f[var2][i] == 0: 
-                                        new_coor[var2] = decimal(1)   
-                                    elif f[var2][i] == 1:
-                                        new_coor[var2] = decimal(0)
-                                
-                                else:
-                                    new_coor[var2] = f[var2][i]
-                            
-                            # Case 2: Flip all but var2 between 0 and 1.
-                            elif case == 2:
-                                if var2 != var1:
-                                    
-                                    if f[var2][i] == 0:
-                                        new_coor[var2] = decimal(1)    
-                                    elif f[var2][i] == 1:
-                                        new_coor[var2] = decimal(0)
-                                
-                                else:
-                                    new_coor[var2] = f[var2][i]
-                            
-                            # Case 3: Flip everything between 0 and 1.
-                            elif case == 3:
-                                
-                                if f[var2][i] == 0:
-                                    new_coor[var2] = decimal(1)
-                                elif f[var2][i] == 1:
-                                    new_coor[var2] = decimal(0)  
-                                else:
-                                    new_coor[var2] == f[var2][i]
-                            
-                            f[var2].append(new_coor[var2])
-                        f['atom'].append(f['atom'][i])
+                if f[var][i] == 1:
+                    f[var][i] = 0
         
-        # Grab the keys 'x', 'y', 'z', and 'atom' in the proper order
-        # from key_list.  Remove duplicate coordinates, and save the 
-        # result to the data instance variable.          
-        key_list = [key for key in f 
+        key_list = [key for key in f
                     if key in ('x','y','z','atom')]
-        output = [[f[key][i] for key in key_list]
+        new_f = {var:[round(f[var][i],3) 
+                      for i in range(len(f[var]))]
+                 for var in ('x','y','z')}
+        new_f['atom'] = f['atom']
+        
+        output = [tuple(new_f[key][i] for key in key_list)
                   for i in range(len(f['atom']))]
-        
-        # If less than 1000 atoms are in a unit cell, test if coordinates
-        # are duplicates due to slight precision errors.  The number
-        # 1000 was decided upon through program testing, as comparing
-        # too many atoms slowed the program down without finding duplicates.
-        if len(output) <= 1000:
-            
-            for i in range(len(output[0])):
-                if type(output[0][i]) is str:
-                    str_loc = i
-                    break
-            
-            for i in range(len(output)):
-                for j in range(i+1,len(output)):
-                
-                    if output[i][str_loc] == output[j][str_loc]:
-                        for k in range(4):
-                        
-                            if k != str_loc:
-                                if output[i][k] == output[j][k]:
-                                    continue
-                                elif abs(output[i][k]-output[j][k]) < tol:
-                                    continue
-                                else:
-                                    break
 
-                        else:
-                            for k in range(4): 
-                                output[j][k] = output[i][k]
-                            break 
+        duplicate = {key:value 
+                     for key,value in Counter(output).items()
+                     if value > 1}
         
-        # Remove duplicate atoms that have identical coordinates.
-        output = [list(value) 
-                  for value in set(tuple(lst) for lst in output)]
+        duplicate_index = []
+        for i,atom in enumerate(output):
+            if atom in duplicate:
+                if duplicate[atom] > 1:
+                    duplicate_index.append(i)
+                    duplicate[atom] -= 1
+            else:
+                continue
+
+        output = [[f[key][i] for key in key_list]
+                  for i in range(len(f['atom']))
+                  if i not in duplicate_index]
+        
         self.data.update({key:[value[i] for value in output]
                           for i,key in enumerate(key_list)})
 
@@ -391,21 +329,18 @@ class Cif(object):
             Decimal fractional coordinate that results from evaluating expr.
         '''
         
-        # Define method for easy conversion of strings to decimals.
-        decimal = lambda num: d.Decimal(num)
-        
         # If the expression contains a fraction, calculate it.  
         # Replace the fraction with the character f, to be used later.
         for i,char in enumerate(expr):
             if char == '/':
-                left = decimal(expr[i-1])
-                right = decimal(expr[i+1])
+                left = float(expr[i-1])
+                right = float(expr[i+1])
                 fract = left/right
 
                 expr = expr[:i-1] + 'f' + expr[i+2:]
                 break
 
-        i,ans = 0,decimal(0)
+        i,ans = 0,0
         
         # Reduce the expression to a single character by performing additon
         # and substraction operations.  Replace the parts of the expression
@@ -422,7 +357,7 @@ class Cif(object):
                 elif lchar == 'a':
                     left = ans
                 else:
-                    left = decimal(lchar)
+                    left = float(lchar)
 
                 if rchar in ('x','y','z'):
                     right = new_f[rchar]
@@ -431,7 +366,7 @@ class Cif(object):
                 elif rchar == 'a':
                     right = ans
                 else:
-                    right = decimal(rchar)
+                    right = float(rchar)
 
                 if expr[i] == '+':
                     ans = left + right
@@ -494,8 +429,6 @@ class Pdb(object):
         self.data = {'x':[], 'y':[], 'z':[], 'atom':[]}
 
         # Define methods needed for reading pdb files.
-        decimal = lambda num: d.Decimal(num)
-        radians = lambda num : decimal(math.radians(decimal(num)))
 
         # Set value of keys in output based on field positions in a given
         # line.  Next to each record name are fields representing different 
@@ -506,22 +439,22 @@ class Pdb(object):
         for line in lines_read:
 
             if line.startswith('CRYST1'):
-                self.data['a'] = decimal(line[6:15].strip())
-                self.data['b'] = decimal(line[15:24].strip())
-                self.data['c'] = decimal(line[24:33].strip())
+                self.data['a'] = float(line[6:15].strip())
+                self.data['b'] = float(line[15:24].strip())
+                self.data['c'] = float(line[24:33].strip())
                 
-                self.data['alpha'] = radians(line[33:40].strip())
-                self.data['beta'] = radians(line[40:47].strip())
-                self.data['gamma'] = radians(line[47:54].strip())
+                self.data['alpha'] = radians(float(line[33:40].strip()))
+                self.data['beta'] = radians(float(line[40:47].strip()))
+                self.data['gamma'] = radians(float(line[47:54].strip()))
 
                 self.data['h-m'] = line[55:66].replace(' ','').lower().rstrip()
 
             elif line.startswith('SCALE'):
-                self.data['s' + line[5]] = [decimal(line[10:20].strip()),
-                                            decimal(line[20:30].strip()),
-                                            decimal(line[30:40].strip())]
+                self.data['s' + line[5]] = [float(line[10:20].strip()),
+                                            float(line[20:30].strip()),
+                                            float(line[30:40].strip())]
         
-                self.data['u' + line[5]] = decimal(line[45:55].strip())
+                self.data['u' + line[5]] = float(line[45:55].strip())
             
             elif line.startswith(('ATOM', 'HETATM')):
                 if line[12].upper() == 'H':
@@ -531,9 +464,9 @@ class Pdb(object):
                 else:
                     self.data['atom'].append(line[12] + line[13].lower())
             
-                self.data['x'].append(decimal(line[30:38].strip()))
-                self.data['y'].append(decimal(line[38:46].strip()))
-                self.data['z'].append(decimal(line[46:54].strip()))
+                self.data['x'].append(float(line[30:38].strip()))
+                self.data['y'].append(float(line[38:46].strip()))
+                self.data['z'].append(float(line[46:54].strip()))
    
 
     def parse(self):
@@ -541,20 +474,15 @@ class Pdb(object):
         
         # Use the dictionary f to simplify calls to self.data.
         f = self.data
-        
-        # Define keywords for math methods used in data parsing.
-        decimal = lambda num: d.Decimal(num)
-        cos = lambda num : decimal(math.cos(num))
-        sin = lambda num : decimal(math.sin(num))
 
         # Define a tolerance value for finding duplicate coordinates.
-        tol = decimal('0.00025')
+        tol = 0.000025
         
         # Calculate the lattice vectors, outputting as 2D list.
         # v is the unit cell volume.
         v = (f['a']*f['b']*f['c']*
             (1 - cos(f['alpha'])**2 - cos(f['beta'])**2 - cos(f['gamma'])**2 +
-                2*cos(f['alpha'])*cos(f['beta'])*cos(f['gamma'])).sqrt())
+                2*cos(f['alpha'])*cos(f['beta'])*cos(f['gamma']))**0.5)
        
         self.data = {'lat_vec': [
                    # a vector
@@ -593,10 +521,10 @@ class Pdb(object):
                     elif f[key][i] < 0:
                         f[key][i] += 1
                 
-                if abs(f[key][i]-0) < tol/10:
-                    f[key][i] = decimal(0)
-                elif abs(f[key][i]-1) < tol/10:
-                    f[key][i] = decimal(1)
+                if abs(f[key][i]-0) < tol:
+                    f[key][i] = 0
+                elif abs(f[key][i]-1) < tol:
+                    f[key][i] = 1
 
         # Determine the general position equations associated with
         # the space group of the crystal.  The equations are obtained
@@ -656,105 +584,50 @@ class Pdb(object):
                             elif new_coor < 0:
                                 new_coor += 1
                         
-                        if abs(new_coor-0) < tol/10:
-                            new_coor = decimal(0)
-                        elif abs(new_coor-1) < tol/10:
-                            new_coor = decimal(1)
+                        if abs(new_coor-0) < tol:
+                            new_coor = 0 
+                        elif abs(new_coor-1) < tol:
+                            new_coor = 0 
 
                         f[var].append(new_coor)
         
-        # Bring atoms with coordinates of 0 or 1 to the opposite side 
-        # of the unit cell using 3 different criteria.
-        for i in range(len(f['atom'])): 
-            new_coor = {}
+        # Convert all instances of 1 in a coordinate to 0.
+        for i in range(len(f['atom'])):
+            for var in ('x','y','z'):
 
-            for var1 in ('x','y','z'):
-                
-                if f[var1][i] == 0 or f[var1][i] == 1:
-                    for case in range(1,4): 
-                        for var2 in ('x','y','z'):
-                            
-                            # Case 1: Flip var2 between 0 and 1.
-                            if case == 1:
-                                if var2 == var1:
-                                    
-                                    if f[var2][i] == 0: 
-                                        new_coor[var2] = decimal(1)   
-                                    elif f[var2][i] == 1:
-                                        new_coor[var2] = decimal(0)
-                                
-                                else:
-                                    new_coor[var2] = f[var2][i]
-                            
-                            # Case 2: Flip all but var2 between 0 and 1.
-                            elif case == 2:
-                                if var2 != var1:
-                                    
-                                    if f[var2][i] == 0:
-                                        new_coor[var2] = decimal(1)    
-                                    elif f[var2][i] == 1:
-                                        new_coor[var2] = decimal(0)
-                                
-                                else:
-                                    new_coor[var2] = f[var2][i]
-                            
-                            # Case 3: Flip everything between 0 and 1.
-                            elif case == 3:
-                                
-                                if f[var2][i] == 0:
-                                    new_coor[var2] = decimal(1)
-                                elif f[var2][i] == 1:
-                                    new_coor[var2] = decimal(0)
-                                else:
-                                    new_coor[var2] == f[var2][i]
-                            
-                            f[var2].append(new_coor[var2])
-                        f['atom'].append(f['atom'][i])
+                if f[var][i] == 1:
+                    f[var][i] = 0
         
-        # Grab the keys 'x', 'y', 'z', and 'atom' in the proper order
-        # from key_list.  Remove duplicate coordinates, and save the 
-        # result to the data instance variable.          
-        key_list = [key for key in f 
+        key_list = [key for key in f
                     if key in ('x','y','z','atom')]
-        output = [[f[key][i] for key in key_list]
+        new_f = {var:[round(f[var][i],4) 
+                      for i in range(len(f[var]))]
+                 for var in ('x','y','z')}
+        new_f['atom'] = f['atom']
+        
+        output = [tuple(new_f[key][i] for key in key_list)
                   for i in range(len(f['atom']))]
-        
-        # If less than 1000 atoms are in a unit cell, test if coordinates
-        # are duplicates due to slight precision errors.  The number
-        # 1000 was decided upon through program testing, as comparing
-        # too many atoms slowed the program down without finding duplicates.
-        if len(output) <= 1000:
-            
-            for i in range(len(output[0])):
-                if type(output[0][i]) is str:
-                    str_loc = i
-                    break
-            
-            for i in range(len(output)):
-                for j in range(i+1,len(output)):
-                
-                    if output[i][str_loc] == output[j][str_loc]:
-                        for k in range(4):
-                        
-                            if k != str_loc:
-                                if output[i][k] == output[j][k]:
-                                    continue
-                                elif abs(output[i][k]-output[j][k]) < tol:
-                                    continue
-                                else:
-                                    break
 
-                        else:
-                            for k in range(4): 
-                                output[j][k] = output[i][k]
-                            break 
+        duplicate = {key:value 
+                     for key,value in Counter(output).items()
+                     if value > 1}
         
-        # Remove duplicate atoms that have identical coordinates.
-        output = [list(value) 
-                  for value in set(tuple(lst) for lst in output)]
+        duplicate_index = []
+        for i,atom in enumerate(output):
+            if atom in duplicate:
+                if duplicate[atom] > 1:
+                    duplicate_index.append(i)
+                    duplicate[atom] -= 1
+            else:
+                continue
+
+        output = [[f[key][i] for key in key_list]
+                  for i in range(len(f['atom']))
+                  if i not in duplicate_index]
+        
         self.data.update({key:[value[i] for value in output]
                           for i,key in enumerate(key_list)})
-        
+
     
     def calc(self,expr,new_f):
         '''Returns fractional coordinate from space group expression.
@@ -768,21 +641,18 @@ class Pdb(object):
             Decimal fractional coordinate that results from evaluating expr.
         '''
         
-        # Define method for easy conversion of strings to decimals.
-        decimal = lambda num: d.Decimal(num)
-        
         # If the expression contains a fraction, calculate it.  
         # Replace the fraction with the character f, to be used later.
         for i,char in enumerate(expr):
             if char == '/':
-                left = decimal(expr[i-1])
-                right = decimal(expr[i+1])
+                left = float(expr[i-1])
+                right = float(expr[i+1])
                 fract = left/right
 
                 expr = expr[:i-1] + 'f' + expr[i+2:]
                 break
 
-        i,ans = 0,decimal(0)
+        i,ans = 0,0
         
         # Reduce the expression to a single character by performing additon
         # and substraction operations.  Replace the parts of the expression
@@ -799,7 +669,7 @@ class Pdb(object):
                 elif lchar == 'a':
                     left = ans
                 else:
-                    left = decimal(lchar)
+                    left = float(lchar)
 
                 if rchar in ('x','y','z'):
                     right = new_f[rchar]
@@ -808,7 +678,7 @@ class Pdb(object):
                 elif rchar == 'a':
                     right = ans
                 else:
-                    right = decimal(rchar)
+                    right = float(rchar)
 
                 if expr[i] == '+':
                     ans = left + right
