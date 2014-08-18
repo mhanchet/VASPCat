@@ -1,4 +1,3 @@
-import decimal
 import os
 from vaspcat import cls,ExitError
 
@@ -10,7 +9,8 @@ def main(master,config,file,suffix,i):
         
         # Title
         title_mode = int(poscar['title_mode'])
-        f.write(get_title(file,i,title_mode) + '\n')
+        atom_set = sorted(set(master['atom']))
+        f.write(get_title(atom_set,file,i,title_mode) + '\n')
         
         # Scaling constant
         f.write(' 1.00\n')
@@ -26,12 +26,11 @@ def main(master,config,file,suffix,i):
         # Atom symbol (optional)
         if poscar.getboolean('atom_label'):
             f.write(' ') 
-            for name in sorted(set(master['atom'])):
+            for name in atom_set:
                 f.write('{:6} '.format(name))
             f.write('\n')
 
         # Atom count
-        atom_set = sorted(set(master['atom']))
         f.write(' ')
         
         for name in atom_set:
@@ -57,15 +56,12 @@ def main(master,config,file,suffix,i):
                         '\n')
 
 
-def get_title(file,i,title_mode):
+def get_title(atom_set,file,i,title_mode):
     
     if title_mode == 0:
         return file['name'][i]
-    
+        
     elif title_mode == 1:
-        return file['base'][i]
-    
-    elif title_mode == 2:
         while True:
             print('What should the POSCAR title of ' + file['base'][i] + ' be?')
             title = input('>> ')[0:50]
@@ -83,6 +79,12 @@ def get_title(file,i,title_mode):
             else:
                 return title
         
-    elif title_mode == 3:
+    elif title_mode == 2:
         return 'POSCAR'
     
+    elif title_mode == 3:
+        return ' '.join(atom_set)
+    
+    elif title_mode == 4:
+        return file['base'][i]
+

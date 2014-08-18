@@ -80,8 +80,11 @@ def verify(config,user_config):
                     
                     value = user_config.get(section,option)
                     var_type = master[section][option][0]
+                    
+                    if section == 'INCAR' and value.lower() == 'none':
+                        continue
 
-                    if var_type == 'bool':
+                    elif var_type == 'bool':
                         bool_lst = ['true','false']
                         if value.lower() not in bool_lst:
                             raise ExitError("User Settings Error",
@@ -117,8 +120,10 @@ def verify(config,user_config):
                                     "Fix config.ini before loading " +
                                     "user settings.\n")
 
-                        int_lst = master[section][option][1]
-                        if value not in int_lst:
+                        low = master[section][option][1]
+                        high = master[section][option][2]
+
+                        if not low <= value <= high:
                             raise ExitError("User Settings Error",
                                     "Provided integer value for" +
                                     " " + option + " in section" +
@@ -127,7 +132,7 @@ def verify(config,user_config):
                                     "user settings.\n",
                                     "Supplied value: " + str(value),
                                     "Supported values: " + 
-                                    ", ".join(map(str,int_lst)) + "\n")
+                                    "{0} to {1}\n".format(low,high))
                         
                     elif var_type == 'float':
                         try:

@@ -3,8 +3,8 @@ import re
 import os
 
 from vaspcat import ExitError,cls
+from vaspcat.core import incar,poscar,potcar
 from vaspcat.extend import filetype
-from vaspcat.core import poscar,potcar
 
 
 def main(config,file):
@@ -59,6 +59,11 @@ def main(config,file):
                 poscar.main(master,config,file,suffix,i)
             if output.getboolean('POTCAR'):
                 potcar.main(master,config,file,suffix,i)
+
+        if output.getboolean('INCAR'):
+            incar.main(config,file,suffix,i)
+        if output.getboolean('KPOINTS'):
+            pass
 
     cls()
    
