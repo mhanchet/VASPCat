@@ -1,9 +1,9 @@
 from setuptools import setup, find_packages
-from vaspcat import __version__
+import vaspcat 
 
 setup(
     name = 'VaspCat',
-    version = __version__,
+    version = vaspcat.__version__,
     url = 'https://github.com/mcarl15/VaspCat',
     license = 'GNU v3',
     author = 'Michael Carlson',
