@@ -26,6 +26,11 @@ master = {'READER':{'file_type_read':['str',supported],
                    'gga':['str',['91','pe','rp','ps','am']],
                    'ispin':['int',1,2],
                    'lwave':['bool'],
-                   'lcharg':['bool']}}
+                   'lcharg':['bool']},
+          'KPOINTS':{'title_mode':['int',0,2],
+                     'point_mode':['int',0,1],
+                     'mesh_x':['int',1,50],
+                     'mesh_y':['int',1,50],
+                     'mesh_z':['int',1,50]}}
 
 
