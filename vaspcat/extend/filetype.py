@@ -457,13 +457,23 @@ class Pdb(object):
                 self.data['u' + line[5]] = float(line[45:55].strip())
             
             elif line.startswith(('ATOM', 'HETATM')):
-                if line[12].upper() == 'H':
-                    self.data['atom'].append(line[12])
-                elif line[12] == ' ':
-                    self.data['atom'].append(line[13])
+                if len(line) >= 78 and not line[76:78].strip().isnumeric():
+                    if not line[76].strip():
+                        self.data['atom'].append(line[77].upper())
+                    else:
+                        self.data['atom'].append(
+                                line[76].upper() + line[77].lower())
+
+                elif not line[12].strip():
+                    self.data['atom'].append(line[13].upper())
+                
+                elif line[12].upper() == 'H':
+                    self.data['atom'].append('H')
+                
                 else:
-                    self.data['atom'].append(line[12] + line[13].lower())
-            
+                    self.data['atom'].append(
+                            line[12].upper() + line[13].lower())
+
                 self.data['x'].append(float(line[30:38].strip()))
                 self.data['y'].append(float(line[38:46].strip()))
                 self.data['z'].append(float(line[46:54].strip()))
