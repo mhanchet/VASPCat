@@ -1,5 +1,4 @@
 import os
-import shutil
 
 from vaspcat import ExitError
 
@@ -10,15 +9,13 @@ def main(master,config,file,suffix,i):
     atom_set = sorted(set(master['atom']))
     directory = os.path.expandvars(potcar['path'])
     path = []
-    
+
     for atom in atom_set:
         in_file = os.path.join(directory,atom,'POTCAR')
         path.append(in_file)
-    
-    data = zip(path,atom_set)
+     
     atom_lst = []
-
-    for in_file,atom in data:
+    for in_file,atom in zip(path,atom_set):
         if not os.path.isfile(in_file):
             atom_lst.append(atom)
     
@@ -29,7 +26,10 @@ def main(master,config,file,suffix,i):
                         'Add the missing files, and run VaspCat again.\n',
                         'Missing atoms: {0}\n'.format(atom_str))
     else:
-        out_file = open(os.path.join(file['output'][i],'POTCAR'+suffix),'w')
-        for in_file,atom in data:
-            shutil.copyfileobj(in_file, out_file)        
-        out_file.close()
+        out_file = os.path.join(file['output'][i],'POTCAR'+suffix)
+        with open(out_file,'a') as fout:
+            for in_file,atom in zip(path,atom_set):
+                with open(in_file,'r') as fin:
+                    for line in fin:
+                        fout.write(line)   
+        
