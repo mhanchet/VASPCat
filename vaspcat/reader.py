@@ -1,30 +1,53 @@
+"""=== This file is part of VaspCat - <http://github.com/mcarl15/VaspCat> ===
+
+Copyright 2015, Michael Carlson <mcarl15@ksu.edu>
+
+VaspCat is free software: you can redistribute it and/or modify it under the
+terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version.
+
+VaspCat is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with
+VaspCat.  If not, see <http://www.gnu.org/licenses/>.
+
+Module Description:
+    Saves paths and extensions of parsable files to the dictionary 'file'.   
+"""
+
+
 import inspect
 import os
 import re
 
-import pkg_resources as pkg
-
 from vaspcat import cls,ExitError
-from vaspcat.extend import filetype
+from vaspcat.extend import configuration,filetype
 
-def main(config,file) -> 'File_dictionary':
-    """Populates keys of file dictionary based on READER config settings.
+
+def main(config,file):
+    """Populates keys of 'file' dictionary based on READER config settings.
 
     Args:
-        config: ConfigParser object with program settings.  Used in method to
-            determine how input files should be treated.
-        file: Dictionary with keys having file names, paths, and extensions.
+        config(ConfigParser): Contains program settings obtained from
+            settings.py.  These settings determine what file types are read
+            and what name the program uses to identify a particular set
+            of output operations.
+        file(dict): Object provided with file names, paths, and extensions
+            supported by VaspCat.
 
     Returns:
-        file: Updated dictionary with the complete set of file information 
-            output.py needs to work properly.
+        file(dict): Complete set of information output.py needs to locate
+            and process input files.
     """
 
     reader = config['READER']
     
     if reader['file_type_read'].lower() != 'none': 
         print('Scanning ' + file['directory'] + ' for supported files...\n')
-        file = scan_directory(reader,file)  
+        file = scan_directory(file,reader)  
     else:
         if reader.getboolean('name_prompt'):
             
@@ -33,7 +56,7 @@ def main(config,file) -> 'File_dictionary':
                 test_name = input('>> ')
                 cls()
                 
-                test_name = name_settings([],test_name)
+                test_name = name_check([],test_name)
                 
                 if test_name:
                     file['name'] = [test_name]
@@ -45,58 +68,43 @@ def main(config,file) -> 'File_dictionary':
     return file
     
 
-def scan_directory(reader,file) -> 'File dictionary': 
+def scan_directory(file,reader): 
     """Finds files with supported extensions from current working directory.
     
     Args:
-        reader: ConfigParser object with settings pertaining to file reading.
-        file: Dictionary to be populated with paths, names, and extensions
+        file(dict): Populated here with paths, names, and extensions
             of supported files in working directory.
-    
+        reader(ConfigParser): Subset of 'config' ConfigParser object with 
+            settings only related to file reading.
+            
     Raises:
         ExitError: Thrown if no supported files were found in the working
-            directory, even though the user asserted otherwise in the
-            program settings.
+            directory, even though the user specified otherwise in the
+            program settings.  Program returns to main menu.
 
     Returns: 
-        file: Dictionary with keys 'directory', 'base', 'extension', and 'name'
-            giving required information to locate and identify readable files.
+        file(dict): Provides the keys 'directory', 'base', 'extension', 
+            and 'name' required for locating and identifying readable files. 
     """
     
-    # Get list of extensions the user wants read from the working directory,
-    # and determine if VaspCat supports them.
     requested = reader['file_type_read'].lower().split()
-    supported = [name.lower() 
-                 for name,obj in inspect.getmembers(filetype)
-                 if inspect.isclass(obj)]
+    supported = configuration.items(setting=False)
 
     if 'all' in requested:
         match = supported
     else:
-        match = [ext for ext in requested 
-                 if ext in supported]
+        match = [extension for extension in requested 
+                 if extension in supported]
         
-    # Get supported files by splitting extensions from scanned files in 
-    # working directory.
-    file_info = [(f,ext) for ext in match
+    # The list of tuples 'file_info' contains the name of the supported file
+    # in index 0 and its extension in index 1.
+    file_info = [(f,extension) for extension in match
                  for f in os.listdir(file['directory'])
                  if os.path.isfile(f) 
-                 if ext in os.path.splitext(f)[1].lower()]
+                 if extension in os.path.splitext(f)[1].lower()]
     
     file_name = [data[0] for data in file_info]
     extension = [data[1] for data in file_info]
-    
-    # Get supported files which do not have extensions (such as POSCAR)
-    # by looking for the file type plus, optionally, an underscore at 
-    # the start of the file name.
-    file_info = [(f,ext) for ext in match
-                 for f in os.listdir(file['directory'])
-                 if os.path.isfile(f)
-                 if re.search(re.compile("(?i)^"+ext+"_*"),f)
-                 if f not in file_name]
-    
-    file_name.extend([data[0] for data in file_info])
-    extension.extend([data[1] for data in file_info])
     
     if not file_name:
         cls()
@@ -112,12 +120,12 @@ def scan_directory(reader,file) -> 'File dictionary':
             'Choose a directory with supported files, or ' +
             'modify the file_type_read',
             'option in the config file.\n',
-            'File formats read: ' + match,
-            'File formats supported: ' + ', '.join(supported) + '\n')
+            'Options read: ' + match,
+            'Options supported: ' + ', '.join(supported) + '\n')
 
-    # Extract name from file_name, or have user provide the file name,
-    # depending on the value of name_prompt in VaspCat settings.
-    name_lst = []
+    # Extract name from 'file_name', or have user provide the file name,
+    # depending on the value of 'name_prompt' in VaspCat settings.
+    name_list = []
     
     if reader.getboolean('name_prompt'): 
         for name in file_name:
@@ -128,23 +136,20 @@ def scan_directory(reader,file) -> 'File dictionary':
                 test_name = input('>> ')
                 cls()
 
-                test_name = name_settings(name_lst,test_name,extra)
+                test_name = name_check(name_list,test_name,extra)
                     
                 if test_name:
-                    name_lst.append(test_name)
+                    name_list.append(test_name)
                     break
     else:
         extract = [os.path.splitext(f)[0] for f in file_name]
         
-        # If extension is at the start of the file name, remove it.
-        for i,name in enumerate(extract):
-            extract[i] = re.sub("(?i)^" + extension[i] + "_*",'',extract[i])
         
         for i,name in enumerate(extract):
             extra = 'for the file {0} '.format(file_name[i])    
             
             if extract.count(name) > 1:
-                name_lst.append(name + '_' + extension[i])
+                name_list.append(name + '_' + extension[i])
             elif not name:
                 print('Extracted name for {0} ' +
                       'is blank.\n'.format(file_name[i]))
@@ -155,54 +160,53 @@ def scan_directory(reader,file) -> 'File dictionary':
                     test_name = input('>> ')
                     cls()
                     
-                    test_name = name_settings(name_lst,test_name,extra)
+                    test_name = name_check(name_list,test_name,extra)
                     
                     if test_name:
-                        name_lst.append(test_name)
+                        name_list.append(test_name)
                         break
             else:
-                name_lst.append(name)
+                name_list.append(name)
     
     file['base'] = file_name
-    file['name'] = name_lst          
+    file['name'] = name_list          
     file['extension'] = extension
-    
     cls()
     return file
 
 
-def name_settings(name_lst,test_name,extra='') -> 'test_name or blank string':
+def name_check(name_list,test_name,extra=''):
     """Test if proposed output names are duplicates or blank.
 
     Args:
-        name_lst: List containing the names that have already been extracted.
-        test_name: Proposed output name for addition to name_lst.
-        extra: String added to error message specifying its context.
+        name_list(list): Names that have already been extracted.
+        test_name(list): Proposed output name for addition to 'name_list'.
+        extra(str): Text added to error message specifying its context.
             (default = '')
 
-    Returns:
-        test_name: Returns empty string if name is blank or a duplicate, 
-            or parsed name otherwise.
-    
     Raises:
         ExitError: Exception raised if user wishes to return to VaspCat menu
             instead of providing a new output name.
+ 
+    Returns:
+        if (not test_name) or (test_name not in name_list):
+            Blank string indicating a new output name is needed.
+        else:
+            test_name(str): Parsed and validated output name.
     """
     
     # Remove characters that are not dashes or alphanumeric from output name.
     test_name = re.sub("[^\w-]*",'',test_name)[0:50] 
     
-    if test_name in name_lst:   
+    if test_name in name_list:   
         print("Output name " + extra + "already used.")
         print("Provide a new name, or type 'exit' to return to the menu.\n")
         print("Duplicate name: " + test_name + "\n")
-
         return ''
 
     elif not test_name:  
         print("Output name " + extra + "cannot be blank.")
         print("Provide a new name, or type 'exit' to return to the menu.\n")
-
         return ''
 
     elif test_name.lower() == 'exit':  

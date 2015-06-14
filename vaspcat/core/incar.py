@@ -1,46 +1,78 @@
+"""=== This file is part of VaspCat - <http://github.com/mcarl15/VaspCat> ===
+
+Copyright 2015, Michael Carlson <mcarl15@ksu.edu>
+
+VaspCat is free software: you can redistribute it and/or modify it under the
+terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version.
+
+VaspCat is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with
+VaspCat.  If not, see <http://www.gnu.org/licenses/>.
+
+Module Description:
+    Reads user variable specifications to save a new INCAR file.   
+"""
+
+
 import configparser
 import os
 
 from vaspcat import cls,ExitError
 
 
-def main(config,file,suffix,i):
-    '''Outputs INCAR file using data from config settings.'''
+def main(config,file,i,suffix):
+    """Outputs INCAR file using data from config settings.
+    
+    Args:
+        config(ConfigParser): Contains settings specifying how variables will
+            be saved in the INCAR file output.
+        file(dict): Provides the path where the INCAR file will be saved.
+        i(int): Identifies which output group is having its INCAR file saved.
+        suffix(str): Adds a suffix to the INCAR file name if the user has
+            chosen to do so or if multiple INCAR files are being saved in the
+            same working directory.
+    """
 
     incar = config['INCAR']
     
     with open(os.path.join(file['output'][i],'INCAR'+suffix), mode='w') as f:
         
-        # Section 1: System name
-        if incar['system'].lower() != 'none':
+        if incar['system'].lower() != 'off':
             title_mode = int(incar['system'])
             f.write('SYSTEM = ' + get_title(file,i,title_mode)+'\n\n')
 
-        # Section 2: Parallel computing options
-        if incar['npar'].lower() != 'none':
-            f.write('Parallelisation options:\n')
-            f.write('  NPAR = ' + incar['npar']+'\n\n')
+        output = [key.upper() + ' = ' + get_bool(incar[key]) + '\n' 
+                  for key in sorted(incar)
+                  if key != 'system' if incar[key].lower() != 'off']
+        
+        for text in output:
+            f.write(text)
 
-        # Section 3-4: Remaining options
-        section = {'File output options:\n':['LWAVE','LCHARG'],
-                   'Calculation options:\n':['ENCUT','EDIFF','EDIFFG',
-                                               'ISMEAR','GGA','ISPIN']}
-        for header in section:
-            flag = 0
-            
-            for name in section[header]:
-                if incar[name.lower()] != 'none' and flag == 0:
-                    flag = 1
-                    f.write(header)
-                if incar[name.lower()] != 'none':
-                    f.write('  ' + name + ' = ' + get_capital(incar,name) + 
-                            '\n')
-            if flag == 1:
-                f.write('\n')
-   
 
 def get_title(file,i,title_mode):
+    """Returns a title for the 'SYSTEM' tag of the INCAR file.
 
+    Args:
+        file(str): Tells the user what output group they are giving a title.
+        i(int): Identifies which output group is having its INCAR file saved.
+        title_mode(int): Identifies what text should go in the 'SYSTEM' tag
+            output of the INCAR file.  See config documentation for an
+            explanation of each possible title.
+
+    Raises:
+        ExitError: Occurs if user chooses to stop VaspCat output before
+            entering a custom title.
+
+    Returns:
+        Various strings depending on the value of title_mode.  See config
+        documentation for an outline of the title possibilities.
+    """
+    
     if title_mode == 0:
         return file['name'][i]
 
@@ -66,15 +98,21 @@ def get_title(file,i,title_mode):
         return 'INCAR'
 
 
-def get_capital(incar,name):
-    
-    value = incar[name.lower()].lower()
+def get_bool(value):
+    """Modifies boolean config values to meet INCAR format requirements.
 
-    if value in ['true','false']:
-        if value == 'true':
-            return '.TRUE.'
-        elif value == 'false':
+    Args:
+        value(str): Text of a particular option in VaspCat settings.
+
+    Returns:
+        Different strings depending on whether or not the value supplied
+        to the function is a boolean.
+    """
+
+    if value.lower() == 'true':
+        return '.TRUE.'
+    elif value == 'false':
             return '.FALSE.'
     else:
-        return value.upper()
+        return value
 

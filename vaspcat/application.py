@@ -1,6 +1,6 @@
 """=== This file is part of VaspCat - <http://github.com/mcarl15/VaspCat> ===
 
-Copyright 2014, Michael Carlson <mcarl15@ksu.edu>
+Copyright 2015, Michael Carlson <mcarl15@ksu.edu>
 
 VaspCat is free software: you can redistribute it and/or modify it under the
 terms of the GNU General Public License as published by the Free Software
@@ -15,23 +15,24 @@ You should have received a copy of the GNU General Public License along with
 VaspCat.  If not, see <http://www.gnu.org/licenses/>.
 
 Module Description:
-    Contains VaspCat program menu UI and file reading methods.   
+    Contains VaspCat program menu UI and calls to file processing methods.   
 """
 
+
 import configparser
-import inspect
 import os
-import re
 import sys
 
-import pkg_resources as pkg
-
-from vaspcat import cls,ExitError,__version__ # Globals
-from vaspcat import reader,settings,output    # Modules 
+from vaspcat import cls,ExitError,__version__           # Globals
+from vaspcat import ExitError,output,reader,settings    # Classes/Modules
 
 
 def main():
-    """Entry point into the VaspCat program."""
+    """Entry point into the VaspCat program.
+    
+    Returns:
+        String with exit message upon program termination.
+    """
     
     cls()
     file = {'directory':os.getcwd()}
@@ -45,13 +46,13 @@ def main():
                  tab+'(2) Print config file\n' +
                  tab+'(3) Exit program\n')
 
-    # Main program loop.
+    # Main program loop
     while True:
-        print(title_text,end='\n')
+        print(title_text)
         print(menu_text)
         choice = input('>> ')
     
-        if choice == '0': # Start file output
+        if choice == '0': 
             cls() 
             
             try:
@@ -64,7 +65,7 @@ def main():
                 cls()
                 print(exit)
         
-        elif choice == '1': # Edit output settings
+        elif choice == '1': 
             cls()
             
             while True:
@@ -92,9 +93,9 @@ def main():
                     cls()
                     print(exit)
 
-        elif choice == '3': # Exit program
+        elif choice == '3': 
             cls()
-            print('Exiting VaspCat...')
+            return 'Exiting VaspCat... '  
             sys.exit()
         
         else:

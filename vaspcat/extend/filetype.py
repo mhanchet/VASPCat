@@ -1,37 +1,57 @@
-# Python standard library modules:
+"""=== This file is part of VaspCat - <http://github.com/mcarl15/VaspCat> ===
+
+Copyright 2015, Michael Carlson <mcarl15@ksu.edu>
+
+VaspCat is free software: you can redistribute it and/or modify it under the
+terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version.
+
+VaspCat is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with
+VaspCat.  If not, see <http://www.gnu.org/licenses/>.
+
+Module Description:
+     Parses input files and extracts crystal geometry data.   
+"""
+
+
 from collections import Counter
 from math import cos,radians,sin
 import re
 import shlex
 
-# VaspCat modules:
 from vaspcat.extend import spacegroup as sg
 
 
 class Cif(object):
-    '''Read cif file and output crystal geometry info for external use.
+    """Reads cif file and outputs crystal geometry info for external use.
     
     Attributes:
-        path: String containing the path of the cif file to be read.
-        data: Dictionary populated with variables contained in the cif file.
-    '''
+        path(str): File location of the cif file to be read.
+        data(dict): Populated with geometry data contained in the cif file.
+    """
     
     def __init__(self,path):
-        
+        """Initialize Cif class with path of parsable file."""
+
         self.path = path
         self.data = {}
 
 
     def get(self):
-        '''Get atomic data from cif file by running read and parse methods.
+        """Get atomic data from cif file by running read and parse methods.
 
         Returns:
-            self.data: Dictionary containing the following keys -
-                atom: List containing the atom names for each coordinate.
-                x, y, and z: Lists containing fractional cartesian 
-                    coordinates for cif file atoms.
-                lat_vec: 2D list containing basis vectors for unit cell.
-        '''
+            self.data(dict): Object that atomic data will be read from.
+                atom(list): Atom names corresponding to each coordinate.
+                x, y, and z (lists): Fractional cartesian coordinates
+                    for cif file atoms.
+                lat_vec(list): Basis vectors for the unit cell.
+        """
         
         self.read()
         self.parse()
@@ -39,7 +59,7 @@ class Cif(object):
 
 
     def read(self):
-        '''Saves cif file keywords and their values to data dictionary.'''
+        """Saves cif file keywords and their values to 'data' dictionary."""
         
         # Store each line from input file in a list.  Each list element
         # is divided into its individual parts by the method shlex.split.
@@ -88,23 +108,23 @@ class Cif(object):
                 keyword = line_list = []
 
             elif line[0].startswith('_'):                 
-                if len(line) == 2:  #if keyword and value are adjacent:
+                if len(line) == 2:  #i if keyword and value are adjacent:
                     keyword = line_list = []
                     self.data[line[0]] = line[1]
-                else:  #if keyword is part of a loop:
+                else:  # if keyword is part of a loop:
                     keyword.append(line[0])
                     line_list = []
                     self.data[keyword[-1]] = []
                 
             elif len(keyword) != len(line + line_list):
-                if len(keyword) < len(line + line_list): #Too few keywords?
+                if len(keyword) < len(line + line_list): # Too few keywords?
                     line_list.append(' '.join(line))
                     self.data[keyword[-1]].extend(line_list)
                     line_list = []
-                elif len(keyword) > len(line + line_list): #Too few values?
+                elif len(keyword) > len(line + line_list): # Too few values?
                     line_list.append(line)
 
-            elif len(keyword) == len(line + line_list): #Keywords == Values
+            elif len(keyword) == len(line + line_list): # Keywords == Values
                 line_list.extend(line)
                 for (key, value) in zip(keyword, line_list): 
                     self.data[key].append(value)
@@ -112,7 +132,7 @@ class Cif(object):
    
 
     def parse(self):
-        '''Interprets the relevant geometric data read from the cif file.'''
+        """Interprets the relevant geometric data read from the cif file."""
     
         # Remap keywords in data to new keys.  Choose between two possible
         # atom labels in the process (either '_atom_site_type_symbol'
@@ -318,16 +338,25 @@ class Cif(object):
 
 
     def calc(self,expr,new_f):
-        '''Returns fractional coordinate from space group expression.
+        """Returns fractional coordinate for a set of space group operations.
         
         Args:
-            expr: String coordinate expression to be calculated.
-            new_f: Dictionary containing fractional coordinates to 
-                be substituted for x/y/z in expr.
+            expr(str): Expression to be converted from text to a numeric
+                value for a single coordinate of a single atom.
+            new_f(dict): Fractional coordinates of a single atom that will be
+                substituted for x, y, and z in 'expr'.
         
         Returns:
-            Decimal fractional coordinate that results from evaluating expr.
-        '''
+            if expr == 'a':
+                ans(float): Single coordinate that is the result of
+                    addition and subtraction operations.
+            elif expr == 'f':
+                fract(float): Single coordinate that is the result of a
+                    division operation
+            elif expr in ('x','y','z'):
+                new_f(float): Single coordinate that is the result of a 
+                    direct coordinate substitution.
+        """
         
         # If the expression contains a fraction, calculate it.  
         # Replace the fraction with the character f, to be used later.
@@ -389,29 +418,30 @@ class Cif(object):
 
 
 class Pdb(object):
-    ''''Read pdb file and output crystal geometry info for external use.
+    """Reads pdb file and outputs crystal geometry info for external use.
     
     Attributes:
-        path: String containing the path of the pdb file to be read. 
-        data: Dictionary populated with variables contained in the pdb file.
-    '''
-    
+        path(str): File location of the pdb file to be read.
+        data(dict): Populated with geometry data contained in the pdb file.
+    """
+
     def __init__(self,path):
-        
+        """Initialize Pdb class with path of parsable file."""
+       
         self.path = path
         self.data = {}
 
     
     def get(self):
-        '''Get atomic data from pdb file by running read and parse methods.
+        """Get atomic data from pdb file by running read and parse methods.
 
         Returns:
-            self.data: Dictionary containing the following keys -
-                atom: List containing the atom name for each coordinate. 
-                x, y, and z: Lists containing fractional cartesian coordinates
+            self.data(dict): Object that atomic data will be read from.
+                atom(list): Atom names corresponding to each coordinate.
+                x, y, and z (lists): Fractional cartesian coordinates
                     for pdb file atoms.
-                lat_vec - 2D list containg basis vectors for unit cell.
-        '''
+                lat_vec(list): Basis vectors for the unit cell.
+        """
 
         self.read()
         self.parse()
@@ -419,7 +449,7 @@ class Pdb(object):
 
 
     def read(self):
-        '''Saves pdb file keywords and their values to data dictionary.'''
+        """Saves pdb file keywords and their values to 'data' dictionary."""
 
         keyword = ('CRYST1', 'SCALE', 'ATOM', 'HETATM')
 
@@ -427,8 +457,6 @@ class Pdb(object):
             lines_read = [line for line in f if line.startswith(keyword)]
 
         self.data = {'x':[], 'y':[], 'z':[], 'atom':[]}
-
-        # Define methods needed for reading pdb files.
 
         # Set value of keys in output based on field positions in a given
         # line.  Next to each record name are fields representing different 
@@ -480,14 +508,36 @@ class Pdb(object):
    
 
     def parse(self):
-        ''''Interprets the relevant geometric data read from the pdb file.'''
+        """Interprets the relevant geometric data read from the pdb file."""
         
-        # Use the dictionary f to simplify calls to self.data.
         f = self.data
 
         # Define a tolerance value for finding duplicate coordinates.
         tol = 0.000025
         
+        # Prevent a KeyError due to missing lattice vector info in pdb file.
+        # Assume that the coordinates are already fractional.
+        if 'a' not in f:
+            for lat,coor in zip(('a','b','c'),('x','y','z')):
+                
+                if min(f[coor]) > 0:
+                    f[coor] = [num - min(f[coor]) + 0.0001 for num in f[coor]]
+                elif min(f[coor]) < 0:
+                    f[coor] = [num + min(f[coor]) + 0.0001 for num in f[coor]]
+                
+                f[lat] = max(f[coor]) + 0.0001
+                f[coor] = [num/f[lat] for num in f[coor]]
+
+            f.update(dict.fromkeys(['alpha','beta','gamma'],radians(90)))
+            
+            for num in range(3):
+                tmp_list = [0,0,0]
+                tmp_list[num] = 1
+                f['s'+str(num+1)] = tmp_list
+
+            f.update(dict.fromkeys(['u1','u2','u3'],0))
+            f['h-m'] = 'p1' 
+     
         # Calculate the lattice vectors, outputting as 2D list.
         # v is the unit cell volume.
         v = (f['a']*f['b']*f['c']*
@@ -640,17 +690,26 @@ class Pdb(object):
 
     
     def calc(self,expr,new_f):
-        '''Returns fractional coordinate from space group expression.
+        """Returns fractional coordinate for a set of space group operations.
         
         Args:
-            expr: String coordinate expression to be calculated.
-            new_f: Dictionary containing fractional coordinates to 
-                be substituted for x/y/z in expr.
+            expr(str): Expression to be converted from text to a numeric
+                value for a single coordinate of a single atom.
+            new_f(dict): Fractional coordinates of a single atom that will be
+                substituted for x, y, and z in 'expr'.
         
         Returns:
-            Decimal fractional coordinate that results from evaluating expr.
-        '''
-        
+            if expr == 'a':
+                ans(float): Single coordinate that is the result of
+                    addition and subtraction operations.
+            elif expr == 'f':
+                fract(float): Single coordinate that is the result of a
+                    division operation
+            elif expr in ('x','y','z'):
+                new_f(float): Single coordinate that is the result of a 
+                    direct coordinate substitution.
+        """
+
         # If the expression contains a fraction, calculate it.  
         # Replace the fraction with the character f, to be used later.
         for i,char in enumerate(expr):

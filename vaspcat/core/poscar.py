@@ -1,8 +1,42 @@
+"""=== This file is part of VaspCat - <http://github.com/mcarl15/VaspCat> ===
+
+Copyright 2015, Michael Carlson <mcarl15@ksu.edu>
+
+VaspCat is free software: you can redistribute it and/or modify it under the
+terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version.
+
+VaspCat is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with
+VaspCat.  If not, see <http://www.gnu.org/licenses/>.
+
+Module Description:
+    Processes input files in order to save a new POSCAR output file.   
+"""
+
+
 import os
 from vaspcat import cls,ExitError
 
-def main(master,config,file,suffix,i):
-    '''Outputs POSCAR file using data from master dictionary.'''
+
+def main(config,file,i,master,suffix):
+    """Outputs POSCAR file using data from master dictionary.
+    
+    Args:
+        config(ConfigParser): Contains settings specifying how the  
+            outputted POSCAR file should be formatted.
+        file(dict): Provides the path where the POSCAR file will be saved.
+        i(int): Identifies which output group is having its POSCAR file saved.
+        master(dict): Contains the basis vector and the atom names and
+            coordinates which will go into the outputted file.
+        suffix(str): Adds a suffix to the POSCAR file name if the user has
+            chosen to do so or if multiple POSCAR files are being saved in the
+            same working directory.
+    """
     
     poscar = config['POSCAR']
     with open(os.path.join(file['output'][i],'POSCAR'+suffix), mode='w') as f:
@@ -57,6 +91,24 @@ def main(master,config,file,suffix,i):
 
 
 def get_title(atom_set,file,i,title_mode):
+    """Allows the user text for the first line of the output POSCAR file.
+    
+    Args:
+        atom_set(list): Contains atomic symbols in alphabetic order.
+        file(dict): Supplies the file name and output name for use as titles.
+        i(int): Specifies which input file name should be grabbed.
+        title_mode(int): Identifies what text should go on the first line
+            of the POSCAR file output.  See config documentation for an
+            explanation of each possible title.
+
+    Raises:
+        ExitError: Occurs if user chooses to stop VaspCat output before
+            entering a custom title.
+
+    Returns:
+        Various strings depending on the value of title_mode.  See config
+        documentation for an outline of the title possibilities.
+    """
     
     if title_mode == 0:
         return file['name'][i]
