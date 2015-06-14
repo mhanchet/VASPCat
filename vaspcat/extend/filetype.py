@@ -521,11 +521,13 @@ class Pdb(object):
             for lat,coor in zip(('a','b','c'),('x','y','z')):
                 
                 if min(f[coor]) > 0:
-                    f[coor] = [num - min(f[coor]) + 0.0001 for num in f[coor]]
-                elif min(f[coor]) < 0:
-                    f[coor] = [num + min(f[coor]) + 0.0001 for num in f[coor]]
+                    f[coor] = [num - abs(min(f[coor])) + 0.001 
+                            for num in f[coor]]
+                elif min(f[coor]) <= 0:
+                    f[coor] = [num + abs(min(f[coor])) + 0.001 
+                            for num in f[coor]]
                 
-                f[lat] = max(f[coor]) + 0.0001
+                f[lat] = max(f[coor]) + 0.001
                 f[coor] = [num/f[lat] for num in f[coor]]
 
             f.update(dict.fromkeys(['alpha','beta','gamma'],radians(90)))

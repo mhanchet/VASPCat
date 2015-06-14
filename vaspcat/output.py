@@ -101,12 +101,14 @@ def create_directory(file,output):
             a directory name manually for each set of file conversions.
     
     Raises:
+        ExitError: Raised when the name of the directory to be created 
+            already exists as a file name.  Program returns to the main menu.
+        FileExistsError: Raised if the folder requested for creation exists.
+            The program continues execution in this case.
         PermissionError OR SyntaxError: Raised when the requested new folder 
             name has an improper format.  The user is asked
             to enter a new directory name.
-        FileExistsError: Raised if the folder requested for creation exists.
-            The program continues execution in this case.
-
+        
     Returns:
         file(dict): The key 'output' has been updated with the full paths of
             the folders where output files will be saved
@@ -155,7 +157,13 @@ def create_directory(file,output):
         try:
             os.makedirs(path)            
         except FileExistsError:
-            continue
+            if os.path.isfile(path):
+                raise ExitError("Folder Error",
+                "Cannot create directory '" + os.path.basename(path) + "' " +
+                "since file having the same name", "already exists.  " +
+                "Rename or delete the file, and run VaspCat again.\n")
+            else:
+                continue
     cls()
     return file['output']
 

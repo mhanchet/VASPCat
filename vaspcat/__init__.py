@@ -31,10 +31,10 @@ class ExitError(Exception):
     """Custom error class for abandoning VaspCat output.
     
     Attributes:
-        title: Name of the error shown to the user.  A colon and newline
+        title(str): Name of the error shown to the user.  A colon and newline
             character are appended to the title string.
-        *args: String list containing the description of the error shown to 
-            the user.  Each argument is printed on a separate line.
+        *args(list): Contains the description of the error that is displayed
+            to the user.  Each argument is printed on a separate line.
     """
     
     def __init__(self,title,*args):

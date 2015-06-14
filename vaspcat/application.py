@@ -21,7 +21,6 @@ Module Description:
 
 import configparser
 import os
-import sys
 
 from vaspcat import cls,ExitError,__version__           # Globals
 from vaspcat import ExitError,output,reader,settings    # Classes/Modules
@@ -96,7 +95,6 @@ def main():
         elif choice == '3': 
             cls()
             return 'Exiting VaspCat... '  
-            sys.exit()
         
         else:
             cls()
